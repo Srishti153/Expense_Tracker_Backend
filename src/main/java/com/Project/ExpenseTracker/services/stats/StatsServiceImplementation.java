@@ -1,10 +1,16 @@
 package com.Project.ExpenseTracker.services.stats;
 
 import java.time.LocalDate;
+import java.util.Optional;
 
+import java.util.List;
+import java.util.*;
 import org.springframework.stereotype.Service;
 
 import com.Project.ExpenseTracker.dto.GraphDTO;
+import com.Project.ExpenseTracker.dto.StatsDTO;
+import com.Project.ExpenseTracker.entity.Expense;
+import com.Project.ExpenseTracker.entity.Income;
 import com.Project.ExpenseTracker.repository.ExpenseRepository;
 import com.Project.ExpenseTracker.repository.IncomeRepository;
 
@@ -26,5 +32,43 @@ public class StatsServiceImplementation implements StatsService{
         graphDTO.setIncomeList(incomeRepository.findByDateBetween(startDate, endDate));
 
         return graphDTO;
+    }
+
+    public StatsDTO getStats(){
+        Double totalIncome = incomeRepository.sumAllAmounts();
+        Double totalExpense = expenseRepository.sumAllAmounts();
+
+        Optional<Income> optionalIncome = incomeRepository.findFirstByOrderByDateDesc();
+        Optional<Expense> optionalExpense = expenseRepository.findFirstByOrderByDateDesc();
+
+        StatsDTO statsDTO = new StatsDTO();
+
+        statsDTO.setIncome(totalIncome);
+        statsDTO.setExpense(totalExpense);
+
+        if(optionalIncome.isPresent()){
+            statsDTO.setLatestIncome(optionalIncome.get());
+        }
+        if(optionalExpense.isPresent()){
+            statsDTO.setLatestExpense(optionalExpense.get());
+        }
+
+        statsDTO.setBalance(totalIncome-totalExpense);
+        List<Income> incomeList = incomeRepository.findAll();
+        List<Expense> expenseList = expenseRepository.findAll();
+
+        OptionalDouble minIncome = incomeList.stream().mapToDouble(Income::getAmount).min();
+        OptionalDouble maxIncome = incomeList.stream().mapToDouble(Income::getAmount).max();
+
+        OptionalDouble minExpense = expenseList.stream().mapToDouble(Expense::getAmount).min();
+        OptionalDouble maxExpense = expenseList.stream().mapToDouble(Expense::getAmount).max();
+
+        statsDTO.setMaxExpense(maxExpense.isPresent() ? maxExpense.getAsDouble() : null);
+        statsDTO.setMinExpense(minExpense.isPresent() ? minExpense.getAsDouble() : null);
+
+        statsDTO.setMaxIncome(maxIncome.isPresent() ? maxIncome.getAsDouble() : null);
+        statsDTO.setMinIncome(minIncome.isPresent() ? minIncome.getAsDouble() : null);
+
+        return statsDTO;
     }
 }
